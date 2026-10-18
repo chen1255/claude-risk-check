@@ -19,6 +19,14 @@ import json
 import os
 import sys
 
+# Windows 的 stdout/stderr 默认跟随本地 ANSI 代码页（CI 的 windows-latest 为 cp1252），
+# 直接输出中文会抛 UnicodeEncodeError（曾导致 Windows 上该步骤失败）。显式切到 UTF-8。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "questions.json")
 OUT = os.path.join(ROOT, "questions.js")
