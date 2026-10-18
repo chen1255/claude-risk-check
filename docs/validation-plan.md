@@ -160,10 +160,11 @@ claude-risk-check/
 │   ├── power_auc.py            # 样本量核算（已落地）
 │   └── score_from_dataset.py   # CSV → 复用 claude_risk_check.compute 打分（已落地）
 ├── tests/
-│   └── test_validation_tools.py # 上述两个脚本的测试（已落地）
+│   ├── test_validation_tools.py # 打分 / 功效脚本的测试（已落地）
+│   └── test_analysis.py        # 分析脚本（auc / calibration）的测试（已落地）
 ├── analysis/
-│   ├── auc.py                  # 主分析（待建）
-│   └── calibration.py          # 校准（待建）
+│   ├── auc.py                  # 主分析：AUC / DeLong / 阈值 / 分箱 / 维度 / 亚组（已落地）
+│   └── calibration.py          # 校准：reliability / Brier / 单调性（已落地）
 └── data/                       # 原始数据（.gitignore，不公开）
 ```
 

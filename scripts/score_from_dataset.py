@@ -95,6 +95,57 @@ def validate_answers(ans):
     return clean, problems
 
 
+def load_dataset(csv_path, allow_partial=False):
+    """读取数据集 CSV 并逐条打分。
+
+    返回 (records, meta)：
+      records: 每条 {"sample_id","label","score","levelId","level","answered",
+                     "answers","dim_risks"}；dim_risks 为 {维度id: 平均风险 0~1}
+      meta:    {"csv","rowsInFile","scored","skipped","unlabelled"}
+
+    铁律：分数一律来自 claude_risk_check.compute，不重写评分逻辑。
+    """
+    with open(csv_path, "r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        headers = reader.fieldnames or []
+        rows = list(reader)
+
+    records, skipped, unlabelled = [], 0, 0
+    for row in rows:
+        ans, err = parse_answers(row, headers)
+        if ans is None:
+            skipped += 1
+            continue
+        clean, problems = validate_answers(ans)
+        if problems and not allow_partial:
+            skipped += 1
+            continue
+        score, dim_rows = model.compute(clean)
+        lv = model.level_of(score)
+        label = parse_label(row.get("label"))
+        if label is None:
+            unlabelled += 1
+        records.append({
+            "sample_id": row.get("sample_id") or "",
+            "label": label,
+            "score": score,
+            "levelId": lv["id"],
+            "level": lv["name"],
+            "answered": len(clean),
+            "answers": clean,
+            "dim_risks": {r["id"]: r["risk"] for r in dim_rows},
+        })
+
+    meta = {
+        "csv": os.path.basename(csv_path),
+        "rowsInFile": len(rows),
+        "scored": len(records),
+        "skipped": skipped,
+        "unlabelled": unlabelled,
+    }
+    return records, meta
+
+
 # ---------- 统计（纯标准库） ----------
 def _rankdata(values):
     order = sorted(range(len(values)), key=lambda i: values[i])
@@ -160,45 +211,10 @@ def main():
     ap.add_argument("--json", action="store_true", help="以 JSON 输出汇总")
     args = ap.parse_args()
 
-    with open(args.csv_path, "r", encoding="utf-8-sig", newline="") as f:
-        reader = csv.DictReader(f)
-        headers = reader.fieldnames or []
-        rows = list(reader)
-
-    results, skipped, unlabelled = [], 0, 0
-    for row in rows:
-        ans, err = parse_answers(row, headers)
-        if ans is None:
-            skipped += 1
-            continue
-        clean, problems = validate_answers(ans)
-        if problems and not args.allow_partial:
-            skipped += 1
-            continue
-        score, _rows = model.compute(clean)
-        lv = model.level_of(score)
-        label = parse_label(row.get("label"))
-        if label is None:
-            unlabelled += 1
-        results.append({
-            "sample_id": row.get("sample_id") or "",
-            "label": label,
-            "score": score,
-            "levelId": lv["id"],
-            "level": lv["name"],
-            "answered": len(clean),
-        })
-
+    results, summary = load_dataset(args.csv_path, allow_partial=args.allow_partial)
     scored = [r["score"] for r in results]
     labels = [r["label"] for r in results]
 
-    summary = {
-        "csv": os.path.basename(args.csv_path),
-        "rowsInFile": len(rows),
-        "scored": len(results),
-        "skipped": skipped,
-        "unlabelled": unlabelled,
-    }
     labelled_pairs = [(s, l) for s, l in zip(scored, labels) if l is not None]
     if labelled_pairs:
         s_arr = [p[0] for p in labelled_pairs]
@@ -227,7 +243,9 @@ def main():
 
     if args.out:
         with open(args.out, "w", encoding="utf-8", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=["sample_id", "label", "score", "levelId", "level", "answered"])
+            # record 里另有内部用的 answers / dim_risks（均为 dict），不落盘，故忽略这些多余键
+            w = csv.DictWriter(f, fieldnames=["sample_id", "label", "score", "levelId", "level", "answered"],
+                               extrasaction="ignore")
             w.writeheader()
             for r in results:
                 w.writerow(r)
