@@ -169,3 +169,9 @@ claude-risk-check/
 └── scripts/
     └── install.ps1       # Windows one-click installer
 ```
+
+---
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
