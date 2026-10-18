@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""验证工具测试：samples/power_auc.py 与 scripts/score_from_dataset.py。
+"""验证工具测试：scripts/power_auc.py 与 scripts/score_from_dataset.py。
 
 验证：
   · 样本量核算满足目标功效、对参数单调、非法输入报错
