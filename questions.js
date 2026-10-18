@@ -1,0 +1,787 @@
+/* 由 scripts/build_questions.py 从 questions.json 生成，请勿手改。*/
+window.RISK_PACK = {
+  "version": "1.0.0",
+  "title": "Claude 账号风控自检",
+  "disclaimer": "Anthropic 并未公开“满足某几条即封号”的官方规则。本工具基于社区大量封号案例与 Anthropic 公开 Safeguards 文档归纳，仅供自查参考，不代表任何封号结果的可预测性，也不构成规避平台规则的保证。请在符合服务条款与当地法规的前提下使用 Claude。",
+  "levels": [
+    {
+      "id": "low",
+      "max": 18,
+      "name": "低风险",
+      "color": "#2e7d5b",
+      "bg": "#e7f2ec",
+      "lead": "当前环境较为干净",
+      "note": "整体画像接近正常用户，继续保持“干净、稳定、一致”即可。"
+    },
+    {
+      "id": "mid",
+      "max": 40,
+      "name": "中等风险",
+      "color": "#b98a0a",
+      "bg": "#fbf3dd",
+      "lead": "存在若干可优化的风险点",
+      "note": "有几项已靠近风控敏感线，建议按下方清单逐项调整，尤其是权重高的维度。"
+    },
+    {
+      "id": "elevated",
+      "max": 65,
+      "name": "较高风险",
+      "color": "#d9690f",
+      "bg": "#fdeee1",
+      "lead": "多项指标触碰风控敏感线",
+      "note": "当前环境同时出现多个高风险信号，被判定异常的概率明显升高，请尽快重点整改。"
+    },
+    {
+      "id": "high",
+      "max": 101,
+      "name": "高风险",
+      "color": "#c23b3b",
+      "bg": "#fbeaea",
+      "lead": "多项高危信号叠加",
+      "note": "网络、行为、账号年龄等关键维度同时存在高风险特征，建议先停用并重构环境再继续使用。"
+    }
+  ],
+  "sources": {
+    "supported": {
+      "label": "Anthropic 官方 Supported Countries 说明",
+      "confidence": "high"
+    },
+    "policy": {
+      "label": "Anthropic Usage Policy（可接受使用政策）",
+      "confidence": "high"
+    },
+    "safeguards": {
+      "label": "Anthropic Safeguards 公开说明",
+      "confidence": "high"
+    },
+    "community": {
+      "label": "社区封号案例整理（多篇高阅读量避坑长文）",
+      "confidence": "medium"
+    },
+    "heuristic": {
+      "label": "经验归纳 / 启发式推断（无公开出处）",
+      "confidence": "low"
+    }
+  },
+  "probe": {
+    "supported_countries": [
+      "US",
+      "CA",
+      "GB",
+      "IE",
+      "FR",
+      "DE",
+      "IT",
+      "ES",
+      "PT",
+      "NL",
+      "BE",
+      "LU",
+      "CH",
+      "AT",
+      "SE",
+      "NO",
+      "DK",
+      "FI",
+      "IS",
+      "PL",
+      "CZ",
+      "SK",
+      "HU",
+      "RO",
+      "BG",
+      "GR",
+      "HR",
+      "SI",
+      "EE",
+      "LV",
+      "LT",
+      "JP",
+      "KR",
+      "SG",
+      "AU",
+      "NZ",
+      "IN",
+      "ID",
+      "PH",
+      "TH",
+      "MY",
+      "VN",
+      "TW",
+      "BR",
+      "MX",
+      "AR",
+      "CL",
+      "CO",
+      "PE",
+      "IL",
+      "AE",
+      "SA",
+      "ZA",
+      "TR",
+      "EG",
+      "NG",
+      "KE"
+    ],
+    "datacenter_keywords": [
+      "amazon",
+      "aws",
+      "google cloud",
+      "google llc",
+      "microsoft",
+      "azure",
+      "digitalocean",
+      "linode",
+      "akamai",
+      "vultr",
+      "hetzner",
+      "ovh",
+      "oracle",
+      "alibaba",
+      "aliyun",
+      "tencent",
+      "huawei cloud",
+      "cloudflare",
+      "choopa",
+      "leaseweb",
+      "contabo",
+      "scaleway",
+      "upcloud",
+      "ionos",
+      "m247",
+      "hosting",
+      "datacenter",
+      "data center",
+      "colo",
+      "server",
+      "cloud",
+      "vps",
+      "idc"
+    ],
+    "proxy_keywords": [
+      "vpn",
+      "proxy",
+      "tor exit",
+      "mullvad",
+      "nordvpn",
+      "expressvpn",
+      "surfshark",
+      "private internet access",
+      "shadowsocks",
+      "exit node"
+    ],
+    "utc8_tz_names": [
+      "asia/shanghai",
+      "asia/chongqing",
+      "asia/harbin",
+      "asia/urumqi",
+      "asia/taipei",
+      "asia/hong_kong",
+      "asia/macau",
+      "asia/singapore",
+      "asia/kuala_lumpur",
+      "asia/manila",
+      "asia/brunei",
+      "china standard time",
+      "中国标准时间",
+      "taipei standard time"
+    ],
+    "ip_apis": [
+      "https://ipapi.co/json/",
+      "https://ipinfo.io/json"
+    ]
+  },
+  "dimensions": [
+    {
+      "id": "network",
+      "name": "网络环境",
+      "weight": 25,
+      "basis": "出口 IP 类型与地区稳定性是社区封号案例中最高频的触发点；Anthropic 仅在支持区域提供服务。"
+    },
+    {
+      "id": "behavior",
+      "name": "使用行为模式",
+      "weight": 20,
+      "basis": "24 小时高负载与批量自动化是 Usage Policy 与 Safeguards 中最典型的商业滥用特征。"
+    },
+    {
+      "id": "accountAge",
+      "name": "账号年龄与养号",
+      "weight": 15,
+      "basis": "新号（不满 2 周）在大量社区案例中封号率最高，养号节奏是核心变量。"
+    },
+    {
+      "id": "sharing",
+      "name": "账号共享",
+      "weight": 15,
+      "basis": "Usage Policy 明确账号仅供本人使用；异地/多人登录会直接触发异常判定。"
+    },
+    {
+      "id": "fingerprint",
+      "name": "环境指纹",
+      "weight": 10,
+      "basis": "系统语言/时区与出口地区矛盾会强化地区画像风险；换号未清理残留易被关联。"
+    },
+    {
+      "id": "channel",
+      "name": "接入通道",
+      "weight": 5,
+      "basis": "新号过早使用 CLI / 第三方客户端会带来远超网页版的调用频次。"
+    },
+    {
+      "id": "payment",
+      "name": "支付与订阅",
+      "weight": 5,
+      "basis": "异常支付方式易被支付通道拦截，并牵连账号本身。"
+    },
+    {
+      "id": "identity",
+      "name": "邮箱与验证",
+      "weight": 5,
+      "basis": "注册邮箱类型与验证手机号地区影响账号初始可信度。"
+    }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "dim": "network",
+      "detect": "ip_type",
+      "text": "你使用 Claude 时的出口 IP 属于哪一类？",
+      "options": [
+        {
+          "label": "家庭 / 住宅 IP（宽带原生 IP）",
+          "risk": 0,
+          "advice": "",
+          "source": "community",
+          "confidence": "high"
+        },
+        {
+          "label": "不确定，没查过",
+          "risk": 0.4,
+          "advice": "用 ping0.cc/ip/ 等工具自查：显示“家庭 IP”较安全，显示“IDC 机房”需尽快更换。",
+          "source": "heuristic",
+          "confidence": "low"
+        },
+        {
+          "label": "IDC 机房 / VPS / 云服务器 IP",
+          "risk": 0.9,
+          "advice": "机房 IP 是封号的头号原因之一，请更换为家庭/住宅 IP 出口。",
+          "source": "community",
+          "confidence": "high"
+        },
+        {
+          "label": "公共共享代理 / 机场“万人骑”节点",
+          "risk": 1.0,
+          "advice": "共享出口背后常挂着自动化与批量注册流量，务必换成独立、干净的住宅 IP。",
+          "source": "community",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "id": "q2",
+      "dim": "network",
+      "detect": null,
+      "text": "最近一个月，你的出口地区是否稳定？",
+      "options": [
+        {
+          "label": "长期固定同一地区（国家/城市基本不变）",
+          "risk": 0,
+          "advice": "",
+          "source": "community",
+          "confidence": "high"
+        },
+        {
+          "label": "偶尔切换，但基本在同一国家内",
+          "risk": 0.35,
+          "advice": "尽量固定单一地区，减少跨区跳变。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "频繁跨地区甚至跨国家切换（一天内多个国家）",
+          "risk": 1.0,
+          "advice": "登录 IP 频繁跨区/跨国是高风险信号，请把出口固定到一个受支持地区。",
+          "source": "community",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "id": "q3",
+      "dim": "network",
+      "detect": "ip_region",
+      "text": "你的常驻出口地区是否在 Anthropic 官方支持区域内？",
+      "options": [
+        {
+          "label": "是（如美国、英国、日本等支持区）",
+          "risk": 0,
+          "advice": "",
+          "source": "supported",
+          "confidence": "high"
+        },
+        {
+          "label": "不确定",
+          "risk": 0.5,
+          "advice": "对照 Anthropic Supported Countries 列表，确认常驻出口在支持区域内。",
+          "source": "supported",
+          "confidence": "medium"
+        },
+        {
+          "label": "否 / 在不支持区域",
+          "risk": 1.0,
+          "advice": "服务条款不覆盖不支持区域，长期使用存在合规风险；建议改用支持区域的稳定出口。",
+          "source": "supported",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "id": "q4",
+      "dim": "behavior",
+      "detect": null,
+      "text": "你的使用时段是否有正常作息？",
+      "options": [
+        {
+          "label": "每天有正常活跃与休息间隔",
+          "risk": 0,
+          "advice": "",
+          "source": "policy",
+          "confidence": "high"
+        },
+        {
+          "label": "偶尔通宵 / 连续长时间使用",
+          "risk": 0.4,
+          "advice": "避免长时间不间断高负载，模拟真实用户作息。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "24 小时持续高负载，基本无作息",
+          "risk": 1.0,
+          "advice": "人不会 24 小时不断使用，bot 才会；请给账号留出明显的休息间隔。",
+          "source": "community",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "id": "q5",
+      "dim": "behavior",
+      "detect": null,
+      "text": "是否会跑自动化脚本 / 批量调用？",
+      "options": [
+        {
+          "label": "从不",
+          "risk": 0,
+          "advice": "",
+          "source": "policy",
+          "confidence": "high"
+        },
+        {
+          "label": "极少量、定向的脚本",
+          "risk": 0.4,
+          "advice": "把自动化频率压到最低，尽量以交互式使用为主。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "频繁自动化 / 批量调用",
+          "risk": 1.0,
+          "advice": "批量自动化是典型的商业级滥用特征，建议改为低频、交互式使用。",
+          "source": "policy",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "id": "q6",
+      "dim": "behavior",
+      "detect": null,
+      "text": "单账号的用量强度大致如何？",
+      "options": [
+        {
+          "label": "轻度日常对话 / 写作",
+          "risk": 0,
+          "advice": "",
+          "source": "policy",
+          "confidence": "high"
+        },
+        {
+          "label": "中等，日常开发辅助",
+          "risk": 0.3,
+          "advice": "保持强度平稳，避免长时间占满配额。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "重度，长时间连续跑开发任务",
+          "risk": 0.7,
+          "advice": "控制单次连续任务时长与并发，避免长时间挂机跑 agent。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "长时间挂机跑 agent / 无人值守连续任务",
+          "risk": 1.0,
+          "advice": "无人值守长跑 agent 风险高，建议缩短单次任务并保留人工介入。",
+          "source": "community",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "id": "q7",
+      "dim": "accountAge",
+      "detect": null,
+      "text": "账号注册至今多久了？",
+      "options": [
+        {
+          "label": "3 个月以上",
+          "risk": 0,
+          "advice": "",
+          "source": "community",
+          "confidence": "high"
+        },
+        {
+          "label": "1–3 个月",
+          "risk": 0.25,
+          "advice": "账号已较稳定，但仍避免突然拉高负载。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "2 周 – 1 个月",
+          "risk": 0.6,
+          "advice": "仍在养号期，避免高频高负载，逐步建立正常使用记录。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "不满 2 周",
+          "risk": 1.0,
+          "advice": "新号风险最高：前两周建议只走网页版、低强度使用，别碰 CLI 与自动化。",
+          "source": "community",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "id": "q8",
+      "dim": "accountAge",
+      "detect": null,
+      "text": "注册后多久就充值升级了？",
+      "options": [
+        {
+          "label": "先免费用了 1 周以上才升级",
+          "risk": 0,
+          "advice": "",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "用了几天就升级",
+          "risk": 0.3,
+          "advice": "稍微延后升级节奏，让账号先积累正常的免费使用记录。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "注册当天或次日就充值",
+          "risk": 0.8,
+          "advice": "新号立刻充值易被标记为“测试号”，建议先免费使用一段时间再升级。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "新号直接上最高档（Max 等）",
+          "risk": 1.0,
+          "advice": "一上来就最高档，画像不像真实用户；建议从低档起步、自然升级。",
+          "source": "community",
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "id": "q9",
+      "dim": "accountAge",
+      "detect": null,
+      "text": "升级后短期内触发用量上限的次数？",
+      "options": [
+        {
+          "label": "0–1 次",
+          "risk": 0,
+          "advice": "",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "2 次",
+          "risk": 0.4,
+          "advice": "控制触发限额的频率，给账号留出“克制使用”的画像。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "3 次以上",
+          "risk": 0.8,
+          "advice": "频繁打满限额易被判为滥用，建议错峰使用、控制强度。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "经常持续打满",
+          "risk": 1.0,
+          "advice": "长期持续打满限额风险很高，建议降低强度或选择合适的方案档位。",
+          "source": "community",
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "id": "q10",
+      "dim": "sharing",
+      "detect": null,
+      "text": "账号的使用者与设备情况？",
+      "options": [
+        {
+          "label": "仅自己，主要在固定一台设备",
+          "risk": 0,
+          "advice": "",
+          "source": "policy",
+          "confidence": "high"
+        },
+        {
+          "label": "自己多设备（手机 + 电脑）",
+          "risk": 0.3,
+          "advice": "多设备本身问题不大，但请保持同一个稳定出口。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "偶尔借给他人使用",
+          "risk": 0.7,
+          "advice": "尽量停止共享：任何异地登录都可能触发风控。",
+          "source": "policy",
+          "confidence": "high"
+        },
+        {
+          "label": "多人多地同时使用（拼车/共享号）",
+          "risk": 1.0,
+          "advice": "共享账号是高频封号触发器（异地/多人登录），务必一人一号。",
+          "source": "policy",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "id": "q11",
+      "dim": "fingerprint",
+      "detect": "env_consistency",
+      "text": "系统语言 / 时区与出口地区是否一致？",
+      "options": [
+        {
+          "label": "英文语言 + 时区与出口地区一致",
+          "risk": 0,
+          "advice": "",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "部分一致（改了一部分）",
+          "risk": 0.4,
+          "advice": "尽量让系统语言、时区与出口地区自洽，减少画像矛盾。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "简体中文 + UTC+8，但 IP 在海外",
+          "risk": 0.8,
+          "advice": "语言/时区与 IP 矛盾会强化地区画像，建议调整为英文 + 匹配时区。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "完全没调整过",
+          "risk": 1.0,
+          "advice": "统一环境：出口地区、系统语言、时区、浏览器语言尽量彼此自洽。",
+          "source": "heuristic",
+          "confidence": "low"
+        }
+      ]
+    },
+    {
+      "id": "q12",
+      "dim": "fingerprint",
+      "detect": null,
+      "text": "若曾被封号，换号前是否清理了环境残留？",
+      "options": [
+        {
+          "label": "没有封号经历",
+          "risk": 0,
+          "advice": "",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "清理过（卸载 / 清缓存 / 换隔离环境）",
+          "risk": 0.2,
+          "advice": "",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "未清理就直接换号",
+          "risk": 1.0,
+          "advice": "换号前务必彻底清理 Claude 相关文件与浏览器指纹，否则新号可能被快速关联。",
+          "source": "community",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "id": "q13",
+      "dim": "channel",
+      "detect": null,
+      "text": "新号阶段主要通过什么方式接入 Claude？",
+      "options": [
+        {
+          "label": "老号，随意使用（已过养号期）",
+          "risk": 0,
+          "advice": "",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "新号，只用网页版 claude.ai",
+          "risk": 0.2,
+          "advice": "新号前两周保持网页版为主，暂缓 CLI 与第三方客户端。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "新号直接用 CLI（Claude Code 等）",
+          "risk": 0.7,
+          "advice": "CLI 走开发者通道、调用频次偏高，新号上来就高频容易亮红灯。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "新号频繁使用第三方 / 逆向客户端",
+          "risk": 1.0,
+          "advice": "新号经不起非常规调用的折腾，先远离第三方客户端。",
+          "source": "policy",
+          "confidence": "high"
+        }
+      ]
+    },
+    {
+      "id": "q14",
+      "dim": "payment",
+      "detect": null,
+      "text": "你的订阅 / 支付方式是？",
+      "options": [
+        {
+          "label": "海外信用卡或合规虚拟卡",
+          "risk": 0,
+          "advice": "",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "Apple / Google 平台级订阅",
+          "risk": 0.2,
+          "advice": "平台级订阅相对友好，保留好可申诉退款的凭证。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "第三方代充 / 共享车",
+          "risk": 0.4,
+          "advice": "选择“封号可退款”的渠道，并提前确认退款比例与流程。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "直接绑定中国大陆发行的银行卡",
+          "risk": 1.0,
+          "advice": "国内卡大概率被支付通道风控拦截，建议改用海外卡或平台订阅。",
+          "source": "community",
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "id": "q15",
+      "dim": "identity",
+      "detect": null,
+      "text": "注册用的邮箱类型？",
+      "options": [
+        {
+          "label": "老 Google 邮箱（注册 1–2 年以上）",
+          "risk": 0,
+          "advice": "",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "较新的 Google / ProtonMail",
+          "risk": 0.3,
+          "advice": "邮箱尚可，注意让注册与常用环境保持稳定一致。",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "免费邮箱 / 企业邮箱",
+          "risk": 0.6,
+          "advice": "部分免费/企业邮箱更易被标记，建议换更干净的私人邮箱。",
+          "source": "community",
+          "confidence": "low"
+        },
+        {
+          "label": "一次性 / 来源可疑的邮箱",
+          "risk": 1.0,
+          "advice": "可疑邮箱会拉高账号初始风险，建议更换。",
+          "source": "community",
+          "confidence": "medium"
+        }
+      ]
+    },
+    {
+      "id": "q16",
+      "dim": "identity",
+      "detect": null,
+      "text": "注册验证手机号的地区？",
+      "options": [
+        {
+          "label": "美区 / 英区号码",
+          "risk": 0,
+          "advice": "",
+          "source": "community",
+          "confidence": "medium"
+        },
+        {
+          "label": "其他欧美地区",
+          "risk": 0.3,
+          "advice": "尽量使用美区/英区号码，通过率更高。",
+          "source": "community",
+          "confidence": "low"
+        },
+        {
+          "label": "印度 / 东南亚号码",
+          "risk": 0.7,
+          "advice": "这类号码验证失败率与风控标记概率更高，建议换美区/英区。",
+          "source": "community",
+          "confidence": "low"
+        },
+        {
+          "label": "国内 +86 号码",
+          "risk": 1.0,
+          "advice": "避免使用 +86 号码，容易被关联到风险池。",
+          "source": "community",
+          "confidence": "medium"
+        }
+      ]
+    }
+  ]
+};

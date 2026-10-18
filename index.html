@@ -33,7 +33,7 @@
   .wrap{max-width:880px;margin:0 auto;padding:40px 20px 140px}
 
   /* ---------- Header ---------- */
-  header.top{margin-bottom:28px}
+  header.top{margin-bottom:22px}
   .eyebrow{
     display:inline-block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
     color:var(--accent);background:var(--accent-soft);
@@ -47,6 +47,34 @@
     padding:12px 14px;font-size:13px;color:#8a6a3a;
   }
   .notice b{color:#7a5a2a}
+
+  /* ---------- Tools ---------- */
+  .tools{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:16px 18px;margin-bottom:16px;
+  }
+  .tools-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .tools-row .hint{font-size:12.5px;color:var(--ink-3);margin-left:auto}
+  button.ghost{
+    border:1px solid var(--line);background:#fff;color:var(--ink-2);
+    border-radius:10px;font-size:13.5px;font-weight:600;padding:9px 15px;cursor:pointer;font-family:inherit;
+  }
+  button.ghost:hover{background:#faf8f5}
+  button.ghost:disabled{opacity:.55;cursor:progress}
+  .tool-msg{font-size:12.5px;color:var(--ink-2);margin-top:10px;display:none;white-space:pre-line}
+  .tool-msg.show{display:block}
+  .tool-box{margin-top:14px;border-top:1px dashed var(--line);padding-top:14px}
+  .chip{
+    display:inline-block;border:1px solid var(--line);border-radius:999px;background:#fdfcfb;
+    font-size:12.5px;color:var(--ink-2);padding:6px 12px;cursor:pointer;margin:0 8px 8px 0;font-family:inherit;
+  }
+  .chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .hist{display:grid;gap:8px}
+  .hist-row{display:flex;align-items:center;gap:12px;font-size:13px;border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+  .hist-row .t{color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .hist-row .s{font-weight:700;font-variant-numeric:tabular-nums}
+  .hist-row .lv{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px}
+  .hist-row .d{margin-left:auto;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
   /* ---------- Section ---------- */
   .dim{
@@ -109,11 +137,7 @@
   }
   button.primary:hover:not(:disabled){background:#b8562f}
   button.primary:disabled{background:#d8cfc6;cursor:not-allowed}
-  button.ghost{
-    border:1px solid var(--line);background:#fff;color:var(--ink-2);
-    border-radius:10px;font-size:13.5px;font-weight:600;padding:10px 18px;cursor:pointer;font-family:inherit;
-  }
-  button.ghost:hover{background:#faf8f5}
+  button.primary.ghosty{background:transparent;color:var(--ink-2);border:1px solid var(--line)}
 
   /* ---------- Result ---------- */
   .result{display:none;margin-top:8px}
@@ -162,6 +186,7 @@
   }
   .adv .txt{font-size:13.5px;color:var(--ink-2)}
   .adv .txt b{color:var(--ink);font-weight:600;display:block;margin-bottom:2px}
+  .adv .src{font-size:11.5px;color:var(--ink-3);margin-top:4px;display:block}
   .lvl-重点{border-left-color:var(--danger)}
   .lvl-重点 .tag{background:#fbeaea;color:var(--danger)}
   .lvl-建议{border-left-color:var(--high)}
@@ -171,11 +196,15 @@
   .empty{color:var(--ink-3);font-size:13.5px}
   .foot{font-size:12px;color:var(--ink-3);margin-top:22px;line-height:1.7}
   .foot a{color:var(--ink-2)}
-  .actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  .conf{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:5px;margin-left:6px;font-weight:600}
+  .conf-high{background:#e7f2ec;color:#2e7d5b}
+  .conf-medium{background:#fdf6e5;color:#a06d0c}
+  .conf-low{background:#f2efe9;color:#8a8178}
   @media (max-width:600px){
     h1{font-size:24px}
     .scorecard{gap:18px}
     .db-row{grid-template-columns:84px 1fr 44px}
+    .tools-row .hint{margin-left:0}
   }
 </style>
 </head>
@@ -187,160 +216,79 @@
     <p class="sub">回答 16 个问题，按 8 个维度加权打分，定位你的使用环境中哪些方面容易触发 Anthropic 风控，并给出可执行的调整建议。</p>
     <div class="notice">
       <div>
-        <b>说明：</b>Anthropic 并未公开“满足某几条即封号”的官方规则。本工具基于社区大量封号案例与 Anthropic 公开 Safeguards 文档归纳，仅供自查参考，<b>不代表任何封号结果的可预测性，也不构成规避平台规则的保证</b>。请在符合服务条款与当地法规的前提下使用 Claude。
+        <b>说明：</b><span id="disclaimer"></span>
       </div>
     </div>
   </header>
+
+  <section class="tools">
+    <div class="tools-row">
+      <button class="ghost" id="probeBtn">自动探测我的环境</button>
+      <button class="ghost" id="sandboxBtn">场景沙盒</button>
+      <button class="ghost" id="historyBtn">历史记录</button>
+      <span class="hint">探测结果仅作答题建议，可随时手动修改</span>
+    </div>
+    <div class="tool-msg" id="probeMsg"></div>
+    <div class="tool-box" id="sandboxBox" hidden></div>
+    <div class="tool-box" id="historyBox" hidden></div>
+  </section>
 
   <main id="quiz"></main>
 
   <section class="result" id="result"></section>
 
-  <p class="foot">
-    评分模型：每个维度取该维度问题的平均风险值（0–1），再按维度权重加权求和（0–100）。
-    维度权重参考社区案例中的触发频率：网络环境 25、使用行为 20、账号年龄 15、账号共享 15、环境指纹 10、接入通道 5、支付订阅 5、邮箱验证 5。<br>
-    风险评估参考：自发归纳。官方规则以 Anthropic Usage Policy、Supported Countries 与 Safeguards 文档为准。
-  </p>
+  <p class="foot" id="foot"></p>
 </div>
 
 <div class="bar">
   <div class="bar-in">
     <div class="prog">已作答 <b><span id="done">0</span>/<span id="total">0</span></b></div>
     <div class="track"><i id="fill"></i></div>
+    <button class="primary" id="reset" style="display:none">重新开始</button>
     <button class="primary" id="run" disabled>生成检测报告</button>
   </div>
 </div>
 
+<!-- 唯一数据源 questions.json → scripts/build_questions.py 生成 questions.js -->
+<script src="questions.js"></script>
 <script>
-const DIMENSIONS = [
-  {id:'network',    name:'网络环境',       weight:25},
-  {id:'behavior',   name:'使用行为模式',   weight:20},
-  {id:'accountAge', name:'账号年龄与养号', weight:15},
-  {id:'sharing',    name:'账号共享',       weight:15},
-  {id:'fingerprint',name:'环境指纹',       weight:10},
-  {id:'channel',    name:'接入通道',       weight:5},
-  {id:'payment',    name:'支付与订阅',     weight:5},
-  {id:'identity',   name:'邮箱与验证',     weight:5},
-];
-
-const QUESTIONS = [
-  // 网络环境
-  {id:'q1', dim:'network', text:'你使用 Claude 时的出口 IP 属于哪一类？', options:[
-    {label:'家庭 / 住宅 IP（宽带原生 IP）', risk:0, advice:''},
-    {label:'不确定，没查过', risk:0.4, advice:'用 ping0.cc/ip/ 等工具自查：显示“家庭 IP”较安全，显示“IDC 机房”需尽快更换。'},
-    {label:'IDC 机房 / VPS / 云服务器 IP', risk:0.9, advice:'机房 IP 是封号的头号原因之一，请更换为家庭/住宅 IP 出口。'},
-    {label:'公共共享代理 / 机场“万人骑”节点', risk:1.0, advice:'共享出口背后常挂着自动化与批量注册流量，务必换成独立、干净的住宅 IP。'},
-  ]},
-  {id:'q2', dim:'network', text:'最近一个月，你的出口地区是否稳定？', options:[
-    {label:'长期固定同一地区（国家/城市基本不变）', risk:0, advice:''},
-    {label:'偶尔切换，但基本在同一国家内', risk:0.35, advice:'尽量固定单一地区，减少跨区跳变。'},
-    {label:'频繁跨地区甚至跨国家切换（一天内多个国家）', risk:1.0, advice:'登录 IP 频繁跨区/跨国是高风险信号，请把出口固定到一个受支持地区。'},
-  ]},
-  {id:'q3', dim:'network', text:'你的常驻出口地区是否在 Anthropic 官方支持区域内？', options:[
-    {label:'是（如美国、英国、日本等支持区）', risk:0, advice:''},
-    {label:'不确定', risk:0.5, advice:'对照 Anthropic Supported Countries 列表，确认常驻出口在支持区域内。'},
-    {label:'否 / 在不支持区域', risk:1.0, advice:'服务条款不覆盖不支持区域，长期使用存在合规风险；建议改用支持区域的稳定出口。'},
-  ]},
-
-  // 使用行为模式
-  {id:'q4', dim:'behavior', text:'你的使用时段是否有正常作息？', options:[
-    {label:'每天有正常活跃与休息间隔', risk:0, advice:''},
-    {label:'偶尔通宵 / 连续长时间使用', risk:0.4, advice:'避免长时间不间断高负载，模拟真实用户作息。'},
-    {label:'24 小时持续高负载，基本无作息', risk:1.0, advice:'人不会 24 小时不断使用，bot 才会；请给账号留出明显的休息间隔。'},
-  ]},
-  {id:'q5', dim:'behavior', text:'是否会跑自动化脚本 / 批量调用？', options:[
-    {label:'从不', risk:0, advice:''},
-    {label:'极少量、定向的脚本', risk:0.4, advice:'把自动化频率压到最低，尽量以交互式使用为主。'},
-    {label:'频繁自动化 / 批量调用', risk:1.0, advice:'批量自动化是典型的商业级滥用特征，建议改为低频、交互式使用。'},
-  ]},
-  {id:'q6', dim:'behavior', text:'单账号的用量强度大致如何？', options:[
-    {label:'轻度日常对话 / 写作', risk:0, advice:''},
-    {label:'中等，日常开发辅助', risk:0.3, advice:'保持强度平稳，避免长时间占满配额。'},
-    {label:'重度，长时间连续跑开发任务', risk:0.7, advice:'控制单次连续任务时长与并发，避免长时间挂机跑 agent。'},
-    {label:'长时间挂机跑 agent / 无人值守连续任务', risk:1.0, advice:'无人值守长跑 agent 风险高，建议缩短单次任务并保留人工介入。'},
-  ]},
-
-  // 账号年龄与养号
-  {id:'q7', dim:'accountAge', text:'账号注册至今多久了？', options:[
-    {label:'3 个月以上', risk:0, advice:''},
-    {label:'1–3 个月', risk:0.25, advice:'account 已较稳定，但仍避免突然拉高负载。'},
-    {label:'2 周 – 1 个月', risk:0.6, advice:'仍在养号期，避免高频高负载，逐步建立正常使用记录。'},
-    {label:'不满 2 周', risk:1.0, advice:'新号风险最高：前两周建议只走网页版、低强度使用，别碰 CLI 与自动化。'},
-  ]},
-  {id:'q8', dim:'accountAge', text:'注册后多久就充值升级了？', options:[
-    {label:'先免费用了 1 周以上才升级', risk:0, advice:''},
-    {label:'用了几天就升级', risk:0.3, advice:'稍微延后升级节奏，让账号先积累正常的免费使用记录。'},
-    {label:'注册当天或次日就充值', risk:0.8, advice:'新号立刻充值易被标记为“测试号”，建议先免费使用一段时间再升级。'},
-    {label:'新号直接上最高档（Max 等）', risk:1.0, advice:'一上来就最高档，画像不像真实用户；建议从低档起步、自然升级。'},
-  ]},
-  {id:'q9', dim:'accountAge', text:'升级后短期内触发用量上限的次数？', options:[
-    {label:'0–1 次', risk:0, advice:''},
-    {label:'2 次', risk:0.4, advice:'控制触发限额的频率，给账号留出“克制使用”的画像。'},
-    {label:'3 次以上', risk:0.8, advice:'频繁打满限额易被判为滥用，建议错峰使用、控制强度。'},
-    {label:'经常持续打满', risk:1.0, advice:'长期持续打满限额风险很高，建议降低强度或选择合适的方案档位。'},
-  ]},
-
-  // 账号共享
-  {id:'q10', dim:'sharing', text:'账号的使用者与设备情况？', options:[
-    {label:'仅自己，主要在固定一台设备', risk:0, advice:''},
-    {label:'自己多设备（手机 + 电脑）', risk:0.3, advice:'多设备本身问题不大，但请保持同一个稳定出口。'},
-    {label:'偶尔借给他人使用', risk:0.7, advice:'尽量停止共享：任何异地登录都可能触发风控。'},
-    {label:'多人多地同时使用（拼车/共享号）', risk:1.0, advice:'共享账号是高频封号触发器（异地/多人登录），务必一人一号。'},
-  ]},
-
-  // 环境指纹
-  {id:'q11', dim:'fingerprint', text:'系统语言 / 时区与出口地区是否一致？', options:[
-    {label:'英文语言 + 时区与出口地区一致', risk:0, advice:''},
-    {label:'部分一致（改了一部分）', risk:0.4, advice:'尽量让系统语言、时区与出口地区自洽，减少画像矛盾。'},
-    {label:'简体中文 + UTC+8，但 IP 在海外', risk:0.8, advice:'语言/时区与 IP 矛盾会强化地区画像，建议调整为英文 + 匹配时区。'},
-    {label:'完全没调整过', risk:1.0, advice:'统一环境：出口地区、系统语言、时区、浏览器语言尽量彼此自洽。'},
-  ]},
-  {id:'q12', dim:'fingerprint', text:'若曾被封号，换号前是否清理了环境残留？', options:[
-    {label:'没有封号经历', risk:0, advice:''},
-    {label:'清理过（卸载 / 清缓存 / 换隔离环境）', risk:0.2, advice:''},
-    {label:'未清理就直接换号', risk:1.0, advice:'换号前务必彻底清理 Claude 相关文件与浏览器指纹，否则新号可能被快速关联。'},
-  ]},
-
-  // 接入通道
-  {id:'q13', dim:'channel', text:'新号阶段主要通过什么方式接入 Claude？', options:[
-    {label:'老号，随意使用（已过养号期）', risk:0, advice:''},
-    {label:'新号，只用网页版 claude.ai', risk:0.2, advice:'新号前两周保持网页版为主，暂缓 CLI 与第三方客户端。'},
-    {label:'新号直接用 CLI（Claude Code 等）', risk:0.7, advice:'CLI 走开发者通道、调用频次偏高，新号上来就高频容易亮红灯。'},
-    {label:'新号频繁使用第三方 / 逆向客户端', risk:1.0, advice:'新号经不起非常规调用的折腾，先远离第三方客户端。'},
-  ]},
-
-  // 支付与订阅
-  {id:'q14', dim:'payment', text:'你的订阅 / 支付方式是？', options:[
-    {label:'海外信用卡或合规虚拟卡', risk:0, advice:''},
-    {label:'Apple / Google 平台级订阅', risk:0.2, advice:'平台级订阅相对友好，保留好可申诉退款的凭证。'},
-    {label:'第三方代充 / 共享车', risk:0.4, advice:'选择“封号可退款”的渠道，并提前确认退款比例与流程。'},
-    {label:'直接绑定中国大陆发行的银行卡', risk:1.0, advice:'国内卡大概率被支付通道风控拦截，建议改用海外卡或平台订阅。'},
-  ]},
-
-  // 邮箱与验证
-  {id:'q15', dim:'identity', text:'注册用的邮箱类型？', options:[
-    {label:'老 Google 邮箱（注册 1–2 年以上）', risk:0, advice:''},
-    {label:'较新的 Google / ProtonMail', risk:0.3, advice:'邮箱尚可，注意让注册与常用环境保持稳定一致。'},
-    {label:'免费邮箱 / 企业邮箱', risk:0.6, advice:'部分免费/企业邮箱更易被标记，建议换更干净的私人邮箱。'},
-    {label:'一次性 / 来源可疑的邮箱', risk:1.0, advice:'可疑邮箱会拉高账号初始风险，建议更换。'},
-  ]},
-  {id:'q16', dim:'identity', text:'注册验证手机号的地区？', options:[
-    {label:'美区 / 英区号码', risk:0, advice:''},
-    {label:'其他欧美地区', risk:0.3, advice:'尽量使用美区/英区号码，通过率更高。'},
-    {label:'印度 / 东南亚号码', risk:0.7, advice:'这类号码验证失败率与风控标记概率更高，建议换美区/英区。'},
-    {label:'国内 +86 号码', risk:1.0, advice:'避免使用 +86 号码，容易被关联到风险池。'},
-  ]},
-];
+if (!window.RISK_PACK) {
+  document.write('<p style="padding:40px;color:#c23b3b">无法加载 questions.js。请确认它与 index.html 在同一目录（或先运行 scripts/build_questions.py 生成）。</p>');
+}
+const PACK = window.RISK_PACK || {levels:[],dimensions:[],questions:[],probe:{}};
+const LEVELS = PACK.levels;
+const DIMENSIONS = PACK.dimensions;
+const QUESTIONS = PACK.questions;
+const PROBE = PACK.probe || {};
 
 const answers = {};
-
 const quizEl = document.getElementById('quiz');
 const doneEl = document.getElementById('done');
 const totalEl = document.getElementById('total');
 const fillEl = document.getElementById('fill');
 const runBtn = document.getElementById('run');
+const resetBtn = document.getElementById('reset');
 const resultEl = document.getElementById('result');
+const probeMsgEl = document.getElementById('probeMsg');
+const sandboxBox = document.getElementById('sandboxBox');
+const historyBox = document.getElementById('historyBox');
 
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- 静态文本 ---------- */
+document.getElementById('disclaimer').textContent = PACK.disclaimer || '';
+document.getElementById('foot').innerHTML =
+  '评分模型：每个维度取该维度问题的平均风险值（0–1），再按维度权重加权求和（0–100）。<br>' +
+  '维度权重参考社区案例中的触发频率：' +
+  DIMENSIONS.map(d => `${esc(d.name)} ${d.weight}`).join('、') + '。<br>' +
+  '条目标注了来源与置信度（<span class="conf conf-high">high</span> ' +
+  '<span class="conf conf-medium">medium</span> <span class="conf conf-low">low</span>），' +
+  '源自 Anthropic 公开文档与社区高阅读量案例整理；官方规则以 Anthropic Usage Policy、Supported Countries 与 Safeguards 为准。';
+
+/* ---------- 渲染问卷 ---------- */
 function renderQuiz(){
   totalEl.textContent = QUESTIONS.length;
   let html = '';
@@ -349,17 +297,17 @@ function renderQuiz(){
     html += `<section class="dim">
       <div class="dim-head">
         <div class="dim-idx">${i+1}</div>
-        <div class="dim-name">${dim.name}</div>
+        <div class="dim-name">${esc(dim.name)}</div>
         <div class="dim-weight">权重 ${dim.weight}</div>
       </div>
       <div class="dim-body">`;
     qs.forEach(q => {
-      html += `<div class="q"><p class="q-text">${q.text}</p><div class="opts">`;
+      html += `<div class="q"><p class="q-text">${esc(q.text)}</p><div class="opts">`;
       q.options.forEach((op, oi) => {
         html += `<label class="opt">
           <input type="radio" name="${q.id}" value="${oi}">
           <span class="dot"></span>
-          <span>${op.label}</span>
+          <span>${esc(op.label)}</span>
         </label>`;
       });
       html += `</div></div>`;
@@ -377,6 +325,14 @@ function renderQuiz(){
   updateProgress();
 }
 
+function setAnswer(qid, oi){
+  const opts = (QUESTIONS.find(q => q.id === qid) || {}).options || [];
+  if (oi == null || oi < 0 || oi >= opts.length) return;
+  answers[qid] = oi;
+  const el = quizEl.querySelector(`input[name="${qid}"][value="${oi}"]`);
+  if (el) el.checked = true;
+}
+
 function updateProgress(){
   const n = Object.keys(answers).length;
   doneEl.textContent = n;
@@ -385,17 +341,13 @@ function updateProgress(){
   runBtn.textContent = n < QUESTIONS.length
     ? `生成检测报告（还差 ${QUESTIONS.length - n} 题）`
     : '生成检测报告';
+  resetBtn.style.display = n ? 'inline-block' : 'none';
 }
 
+/* ---------- 评分模型（与 CLI 完全一致） ---------- */
 function levelOf(score){
-  if (score < 18) return {name:'低风险', color:'#2e7d5b', bg:'#e7f2ec',
-    lead:'当前环境较为干净', note:'整体画像接近正常用户，继续保持“干净、稳定、一致”即可。'};
-  if (score < 40) return {name:'中等风险', color:'#b98a0a', bg:'#fbf3dd',
-    lead:'存在若干可优化的风险点', note:'有几项已靠近风控敏感线，建议按下方清单逐项调整，尤其是权重高的维度。'};
-  if (score < 65) return {name:'较高风险', color:'#d9690f', bg:'#fdeee1',
-    lead:'多项指标触碰风控敏感线', note:'当前环境同时出现多个高风险信号，被判定异常的概率明显升高，请尽快重点整改。'};
-  return {name:'高风险', color:'#c23b3b', bg:'#fbeaea',
-    lead:'多项高危信号叠加', note:'网络、行为、账号年龄等关键维度同时存在高风险特征，建议先停用并重构环境再继续使用。'};
+  for (const lv of LEVELS){ if (score < lv.max) return lv; }
+  return LEVELS[LEVELS.length - 1];
 }
 
 function compute(){
@@ -413,10 +365,11 @@ function compute(){
   DIMENSIONS.forEach(d => {
     const s = dimScores[d.id];
     const avg = s.n ? s.sum / s.n : 0;
-    const contrib = avg * d.weight; // 0..weight
+    const contrib = avg * d.weight;
     total += contrib;
     rows.push({name:d.name, weight:d.weight, risk:avg, contrib});
   });
+  // 与 JS Math.round 一致；Python 端已用 floor(x+0.5) 对齐，故两端同分
   return {total: Math.round(total), rows};
 }
 
@@ -429,12 +382,11 @@ function adviceList(){
     if (op.risk <= 0 || !op.advice) return;
     const dim = DIMENSIONS.find(d => d.id === q.dim);
     items.push({
-      dim: dim.name,
-      weight: dim.weight,
-      risk: op.risk,
+      dim: dim.name, weight: dim.weight, risk: op.risk,
       weightScore: dim.weight * op.risk,
-      text: op.advice,
-      label: op.label,
+      text: op.advice, label: op.label,
+      source: (PACK.sources && PACK.sources[op.source]) ? PACK.sources[op.source].label : '',
+      confidence: op.confidence || 'low',
     });
   });
   items.sort((a, b) => b.weightScore - a.weightScore);
@@ -454,6 +406,164 @@ function barColor(risk){
   return '#c23b3b';
 }
 
+/* ---------- 历史记录（localStorage） ---------- */
+const HKEY = 'claude-risk-check:history';
+
+function loadHistory(){
+  try { return JSON.parse(localStorage.getItem(HKEY) || '[]'); } catch (e) { return []; }
+}
+function saveHistory(list){
+  try { localStorage.setItem(HKEY, JSON.stringify(list.slice(-20))); } catch (e) {}
+}
+function pushHistory(score, level){
+  const list = loadHistory();
+  list.push({t: Date.now(), score, level});
+  saveHistory(list);
+}
+function fmtTime(ms){
+  const d = new Date(ms);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getMonth()+1}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function renderHistory(){
+  const list = loadHistory();
+  if (!list.length){ historyBox.innerHTML = '<p class="empty">暂无历史记录。生成检测报告后会自动保存。</p>'; return; }
+  let html = '<div class="hist">';
+  list.slice().reverse().forEach((r, i, arr) => {
+    const lv = levelOf(r.score);
+    let delta = '';
+    if (i < arr.length - 1){
+      const d = r.score - arr[i+1].score;
+      if (d !== 0) delta = (d > 0 ? '↑ +' : '↓ ') + d;
+    }
+    html += `<div class="hist-row">
+      <span class="t">${fmtTime(r.t)}</span>
+      <span class="s" style="color:${lv.color}">${r.score}</span>
+      <span class="lv" style="color:${lv.color};background:${lv.bg}">${esc(lv.name)}</span>
+      <span class="d">${delta}</span>
+    </div>`;
+  });
+  html += '</div><button class="ghost" id="clearHist" style="margin-top:12px">清除历史</button>';
+  historyBox.innerHTML = html;
+  const btn = document.getElementById('clearHist');
+  if (btn) btn.addEventListener('click', () => { saveHistory([]); renderHistory(); });
+}
+
+/* ---------- 场景沙盒（预设画像，即时算分） ---------- */
+function minIndex(q){ let bi=0; q.options.forEach((o,i)=>{ if(o.risk < q.options[bi].risk) bi=i; }); return bi; }
+function maxIndex(q){ let bi=0; q.options.forEach((o,i)=>{ if(o.risk > q.options[bi].risk) bi=i; }); return bi; }
+
+function presetMap(kind){
+  const map = {};
+  QUESTIONS.forEach(q => { map[q.id] = kind === 'risky' ? maxIndex(q) : minIndex(q); });
+  if (kind === 'typical'){
+    const t = {q1:0,q2:0,q3:0,q4:1,q5:1,q6:1,q7:1,q8:1,q9:1,q10:1,q11:1,q12:0,q13:1,q14:1,q15:1,q16:1};
+    Object.keys(t).forEach(k => { if (QUESTIONS.some(q => q.id === k)) map[k] = t[k]; });
+  }
+  return map;
+}
+
+const SANDBOX_PRESETS = [
+  {key:'clean',   label:'理想画像（各项最干净）'},
+  {key:'typical', label:'普通海外用户'},
+  {key:'risky',   label:'高危画像（新号 + 机房 IP + 24h 无人值守）'},
+];
+
+function renderSandbox(){
+  let html = '<div style="font-size:13px;color:#6b655e;margin-bottom:10px">' +
+    '点击预设画像，一键填入问卷并即时算分，用于对比「调整前后」的差异：</div>';
+  SANDBOX_PRESETS.forEach(p => {
+    html += `<button class="chip" data-preset="${p.key}">${esc(p.label)}</button>`;
+  });
+  sandboxBox.innerHTML = html;
+  sandboxBox.querySelectorAll('button[data-preset]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const map = presetMap(btn.dataset.preset);
+      Object.keys(answers).forEach(k => delete answers[k]);
+      quizEl.querySelectorAll('input[type=radio]').forEach(i => i.checked = false);
+      Object.keys(map).forEach(qid => setAnswer(qid, map[qid]));
+      updateProgress();
+      renderResult();
+    });
+  });
+}
+
+/* ---------- 自动探测（容错，失败静默降级） ---------- */
+function classifyIpType(org){
+  if (!org) return 1;
+  const s = String(org).toLowerCase();
+  if ((PROBE.proxy_keywords || []).some(k => s.includes(k))) return 3;
+  if ((PROBE.datacenter_keywords || []).some(k => s.includes(k))) return 2;
+  return 0;
+}
+function classifyRegion(cc){
+  if (!cc) return 1;
+  return (PROBE.supported_countries || []).includes(String(cc).toUpperCase()) ? 0 : 2;
+}
+function isUtc8(tz){
+  const off = -new Date().getTimezoneOffset() / 60;
+  if (off === 8) return true;
+  return (PROBE.utc8_tz_names || []).includes(String(tz || '').toLowerCase());
+}
+function classifyEnv(tz, lang, cc){
+  if (!tz || !lang) return null;
+  const l = String(lang).toLowerCase();
+  const c = String(cc || '').toUpperCase();
+  if (c && c !== 'CN'){
+    if (l.startsWith('zh') && isUtc8(tz)) return 2;
+    if (l.startsWith('en')) return 0;
+    return 1;
+  }
+  return null;
+}
+
+async function runProbe(){
+  const notes = [];
+  let tz = '', lang = '';
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+  lang = navigator.language || '';
+  notes.push(`本机时区：${tz || '未知'}｜浏览器语言：${lang || '未知'}`);
+
+  let info = null;
+  const apis = PROBE.ip_apis || ['https://ipapi.co/json/'];
+  for (const url of apis){
+    try {
+      const ctl = new AbortController();
+      const tm = setTimeout(() => ctl.abort(), 4500);
+      const resp = await fetch(url, {signal: ctl.signal});
+      clearTimeout(tm);
+      if (resp.ok){ info = await resp.json(); break; }
+    } catch (e) {}
+  }
+
+  const suggest = {};
+  if (info){
+    const cc = (info.country_code || info.country || '').toUpperCase();
+    const org = info.org || info.asn || '';
+    notes.push(`出口地区：${cc || '未知'}｜ASN/组织：${org || '未知'}`);
+    suggest.q1 = classifyIpType(org);
+    suggest.q3 = classifyRegion(cc);
+    const oi = classifyEnv(tz, lang, cc);
+    if (oi != null) suggest.q11 = oi;
+  } else {
+    notes.push('未能获取出口 IP 信息（可能离线 / 被拦截；以 file:// 打开时受同源策略限制，改用 http(s) 或本地服务器可提升成功率）。');
+  }
+
+  if (Object.keys(suggest).length){
+    Object.keys(suggest).forEach(qid => setAnswer(qid, suggest[qid]));
+    updateProgress();
+    const filled = Object.keys(suggest).map(qid => {
+      const q = QUESTIONS.find(x => x.id === qid);
+      return `${qid} → ${q.options[suggest[qid]].label}`;
+    });
+    notes.push('已按探测结果预填：' + filled.join('；'));
+  }
+  notes.push('以上为启发式推断，仅供参考，请按实际情况核对后修改。');
+  probeMsgEl.textContent = notes.join('\n');
+  probeMsgEl.classList.add('show');
+}
+
+/* ---------- 渲染结果 ---------- */
 function renderResult(){
   const {total, rows} = compute();
   const lv = levelOf(total);
@@ -464,9 +574,9 @@ function renderResult(){
       <div class="val"><b>${total}</b><span>RISK / 100</span></div>
     </div>
     <div class="verdict">
-      <span class="badge" style="color:${lv.color};background:${lv.bg}">${lv.name}</span>
-      <p class="lead">${lv.lead}</p>
-      <p>${lv.note}</p>
+      <span class="badge" style="color:${lv.color};background:${lv.bg}">${esc(lv.name)}</span>
+      <p class="lead">${esc(lv.lead)}</p>
+      <p>${esc(lv.note)}</p>
     </div>
   </div>
 
@@ -476,7 +586,7 @@ function renderResult(){
   rows.forEach(r => {
     const pct = Math.round(r.risk * 100);
     html += `<div class="db-row">
-      <div class="db-name">${r.name}</div>
+      <div class="db-name">${esc(r.name)}</div>
       <div class="db-track"><i style="width:${pct}%;background:${barColor(r.risk)}"></i></div>
       <div class="db-val">${pct}%</div>
     </div>`;
@@ -494,7 +604,9 @@ function renderResult(){
       const sev = sevOf(it.risk);
       html += `<div class="adv lvl-${sev.cls}">
         <span class="tag">${sev.txt}</span>
-        <span class="txt"><b>${it.dim}：${it.label}</b>${it.text}</span>
+        <span class="txt"><b>${esc(it.dim)}：${esc(it.label)}</b>${esc(it.text)}
+        <span class="src">来源：${esc(it.source || '社区归纳')}
+          <span class="conf conf-${it.confidence}">${it.confidence}</span></span></span>
       </div>`;
     });
     html += `</div>`;
@@ -503,21 +615,44 @@ function renderResult(){
 
   resultEl.innerHTML = html;
   resultEl.classList.add('show');
+  pushHistory(total, lv.name);
+  if (!historyBox.hidden) renderHistory();
   resultEl.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
+/* ---------- 事件绑定 ---------- */
 runBtn.addEventListener('click', renderResult);
 
-function resetAll(){
+resetBtn.addEventListener('click', () => {
   Object.keys(answers).forEach(k => delete answers[k]);
   renderQuiz();
   resultEl.classList.remove('show');
   resultEl.innerHTML = '';
+  probeMsgEl.classList.remove('show');
+  probeMsgEl.textContent = '';
   window.scrollTo({top:0, behavior:'smooth'});
+});
+
+document.getElementById('probeBtn').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  btn.disabled = true; btn.textContent = '探测中…';
+  try { await runProbe(); } catch (err) {
+    probeMsgEl.textContent = '探测失败：' + (err && err.message ? err.message : err) + '（可手动作答）';
+    probeMsgEl.classList.add('show');
+  } finally { btn.disabled = false; btn.textContent = '自动探测我的环境'; }
+});
+
+function toggleBox(box, btn, render){
+  const willShow = box.hidden;
+  box.hidden = !willShow;
+  if (willShow && render) render();
+  btn.dataset.on = willShow ? '1' : '';
 }
-window.resetAll = resetAll;
+document.getElementById('sandboxBtn').addEventListener('click', (e) => toggleBox(sandboxBox, e.currentTarget, renderSandbox));
+document.getElementById('historyBtn').addEventListener('click', (e) => toggleBox(historyBox, e.currentTarget, renderHistory));
 
 renderQuiz();
+renderSandbox();
 </script>
 </body>
 </html>

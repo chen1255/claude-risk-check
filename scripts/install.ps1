@@ -1,11 +1,12 @@
 ﻿<#
 .SYNOPSIS
-    将 claude-risk-check（Claude 账号风控自检工具：单文件 HTML 自检页 + Python CLI）
+    将 claude-risk-check（Claude 账号风控自检工具：网页自检页 + Python CLI）
     一键安装到本机，并可选注册全局命令 claude-risk-check。
 
 .DESCRIPTION
     1. 定位可用的 Python 解释器（.venv → python.exe/py.exe → uv 托管）
-    2. 复制 index.html 与 claude_risk_check.py 到用户空间 %USERPROFILE%\.claude-risk-check\
+    2. 复制运行所需全部文件到用户空间 %USERPROFILE%\.claude-risk-check\
+       （index.html / questions.js / questions.json / claude_risk_check.py / probe.py）
     3. 在 %USERPROFILE%\.local\bin\ 生成 launcher：claude-risk-check.cmd
     4. 校验 CLI 与 launcher 可运行（--help）
     5. 打印使用说明（HTML 页面路径 + 命令用法）
@@ -70,10 +71,21 @@ function To-CmdPath([string]$path) {
 }
 
 # --- 0. 源文件核验 ---
-$srcHtml = Join-Path $ProjectRoot "index.html"
-$srcPy = Join-Path $ProjectRoot "claude_risk_check.py"
-Assert-Path $srcHtml "index.html"
-Assert-Path $srcPy "claude_risk_check.py"
+$srcFiles = @(
+    "index.html",
+    "questions.js",
+    "questions.json",
+    "claude_risk_check.py",
+    "probe.py"
+)
+$srcPaths = @{}
+foreach ($name in $srcFiles) {
+    $p = Join-Path $ProjectRoot $name
+    Assert-Path $p $name
+    $srcPaths[$name] = $p
+}
+$srcHtml = $srcPaths["index.html"]
+$srcPy = $srcPaths["claude_risk_check.py"]
 
 # --- 1. 定位 Python 解释器 ---
 function Resolve-Python([string]$Explicit) {
@@ -104,11 +116,12 @@ Write-Host "[1/5] Python 解释器：$pythonPath" -ForegroundColor Cyan
 
 # --- 2. 复制工具到用户空间 ---
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
-Copy-Item $srcHtml (Join-Path $InstallDir "index.html") -Force
-Copy-Item $srcPy (Join-Path $InstallDir "claude_risk_check.py") -Force
+foreach ($name in $srcFiles) {
+    Copy-Item $srcPaths[$name] (Join-Path $InstallDir $name) -Force
+}
 $installedPy = Join-Path $InstallDir "claude_risk_check.py"
 $installedHtml = Join-Path $InstallDir "index.html"
-Write-Host "[2/5] 已复制到：$InstallDir" -ForegroundColor Cyan
+Write-Host "[2/5] 已复制 $($srcFiles.Count) 个文件到：$InstallDir" -ForegroundColor Cyan
 
 # --- 3. 生成全局命令 claude-risk-check.cmd ---
 $launcherPath = $null
