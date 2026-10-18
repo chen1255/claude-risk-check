@@ -25,6 +25,14 @@ import math
 import sys
 from statistics import NormalDist
 
+# Windows 的 stdout/stderr 默认跟随本地 ANSI 代码页（非中文区域如 cp1252），
+# 直接输出中文会抛 UnicodeEncodeError。显式切到 UTF-8（与 build_questions.py 一致）。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 _NORM = NormalDist()
 
 
