@@ -1,0 +1,2 @@
+sample_id,label,label_confidence,ban_time,observation_window_days,snapshot_point,channel,captured_at,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,q12,q13,q14,q15,q16
+EXAMPLE-000-PLEASE-DELETE,survived,reported,,60,pre_ban,form,2026-10-18T00:00:00Z,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
