@@ -80,18 +80,37 @@
 
 ### 4. 样本量估算
 
-主指标为 ROC-AUC，采用 Hanley–McNeil 单样本 AUC 检验：
+主指标为 ROC-AUC，采用 Hanley–McNeil AUC 方差 + 正态近似，由
+[scripts/power_auc.py](./../scripts/power_auc.py) 实现（纯标准库）：
 
 ```
-n_per_group = ( z_{α/2} · √(V0) + z_β · √(V1) )² / (AUC_1 − 0.5)²
+SE(A) = sqrt( [A(1-A) + (n1-1)(Q1-A²) + (n2-1)(Q2-A²)] / (n1·n2) )
+Q1 = A/(2-A)，Q2 = 2A²/(1+A)
+功效条件：(A1 - 0.5) / SE(A1) - z_{α/2} >= z_β
 ```
 
-- `α = 0.05`（双侧）、`power = 0.80`；
-- 备择 `AUC_1` 取 **0.65**（"中等区分力"，低于此的工具不值得继续投入）；
-- `V0 / V1` 为 AUC 在 H0 / H1 下的方差，需按实际正负样本比例计算。
+SE 依赖 n，因此脚本用二分搜索求**最小**满足功效的 n，而不是套一个闭合公式。
 
-**落地要求**：不要直接抄本文的估算。请写一个 `scripts/power_auc.py`（或调用 `statsmodels` / `pROC`）按最终正负比例**实算**，把结果写回本节。
-粗估（供预算参考，非结论）：每组约 200 例时，AUC≈0.65 的 95% CI 半宽约 ±0.07，可稳定拒绝 H0。**总样本目标：≥ 200 banned + ≥ 200 survived。**
+**实算结果**（`python scripts/power_auc.py --table`，α=0.05、power=0.80、两组 1:1）：
+
+| 预期 AUC | 每组 n | 合计 |
+| --- | --- | --- |
+| 0.55 | 518 | 1036 |
+| 0.60 | 125 | 250 |
+| **0.65** | **53** | **106** |
+| 0.70 | 28 | 56 |
+| 0.75 | 16 | 32 |
+| 0.80 | 10 | 20 |
+
+即：若真实区分力为 AUC≈0.65，**功效下限只要 53 + 53**（该规模下 SE≈0.0532、95% CI 半宽 ±0.104，下界 0.546 > 0.5，足以拒绝 H0）。
+
+**推荐采集目标仍为 ≥ 200 banned + ≥ 200 survived**，理由不是功效（53/53 已达标）而是：
+
+- 把 CI 半宽压到 **±0.054**（实测：n=200/200 时 SE≈0.0273，功效≈0.9998）；
+- 支撑 §5 的亚组分析（新号 / 老号、支持区 / 非支持区）与 `confirmed` 子集敏感性分析；
+- 抵消自助采集必然存在的损耗（答案不完整、标签不可信、重复样本）。
+
+> 原稿此处曾粗估「n=200 时 CI 半宽约 ±0.07」——实算为 **±0.054**，已按脚本结果订正。
 
 ### 5. 分析方案
 
@@ -138,15 +157,17 @@ n_per_group = ( z_{α/2} · √(V0) + z_β · √(V1) )² / (AUC_1 − 0.5)²
 ```
 claude-risk-check/
 ├── scripts/
-│   ├── power_auc.py            # 样本量核算（新增）
-│   └── score_from_dataset.py   # CSV → 复用 claude_risk_check.compute 打分（新增）
+│   ├── power_auc.py            # 样本量核算（已落地）
+│   └── score_from_dataset.py   # CSV → 复用 claude_risk_check.compute 打分（已落地）
+├── tests/
+│   └── test_validation_tools.py # 上述两个脚本的测试（已落地）
 ├── analysis/
-│   ├── auc.py                  # 主分析
-│   └── calibration.py          # 校准
+│   ├── auc.py                  # 主分析（待建）
+│   └── calibration.py          # 校准（待建）
 └── data/                       # 原始数据（.gitignore，不公开）
 ```
 
-`score_from_dataset.py` 必须**直接 import `claude_risk_check.compute`**，不得重写评分逻辑——否则验证的就不是被测工具了。
+`score_from_dataset.py` 必须**直接 `import claude_risk_check`** 并调用其 `compute`，不得重写评分逻辑——否则验证的就不是被测工具了。该约束已写入测试（`test_scoring_uses_model`）与打分管线本身。
 
 ### 8. 风险与失败预案
 

@@ -1,3 +1,7 @@
 __pycache__/
 *.pyc
 .venv/
+
+# 验证用数据：含真实封号案例，绝不公开（见 docs/validation-plan.md §6）
+data/
+*_scored.csv
